@@ -3,6 +3,7 @@ import '../services/settings_service.dart';
 import '../services/api_client.dart';
 import '../services/tonconnect_service.dart';
 import '../services/orders_service.dart';
+import '../core/strings.dart';
 
 // ---------- سرویس‌های سینگلتون ----------
 final settingsServiceProvider = Provider<SettingsService>((ref) => SettingsService());
