@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/gift_item.dart';
 import '../models/models.dart';
+import '../services/api_client.dart';
 import 'core_providers.dart';
 
 enum MarketTab { all, ton, stars }
