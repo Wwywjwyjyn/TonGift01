@@ -1,0 +1,13 @@
+{
+  "name": "bazaar-gift-backend",
+  "version": "1.0.0",
+  "description": "Secure proxy backend for Telegram Gift Market app (Marketapp API + TON)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
