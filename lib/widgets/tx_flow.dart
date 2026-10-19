@@ -4,6 +4,7 @@ import '../core/constants.dart';
 import '../core/formatters.dart';
 import '../models/models.dart';
 import '../providers/core_providers.dart';
+import '../providers/inventory_provider.dart';
 import '../providers/wallet_provider.dart';
 import 'common.dart';
 import 'wallet_sheet.dart';
