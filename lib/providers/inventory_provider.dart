@@ -3,6 +3,7 @@ import '../models/gift_item.dart';
 import '../models/models.dart';
 import 'core_providers.dart';
 import 'wallet_provider.dart';
+import '../services/api_client.dart';
 
 class InventoryState {
   final bool loading;

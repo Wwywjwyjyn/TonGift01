@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/gift_item.dart';
 import '../models/models.dart';
 import 'core_providers.dart';
+import '../services/api_client.dart';
 
 /// مرتب‌سازی فید اجاره — همان گزینه‌های مارکت‌اپ
 enum RentSort {

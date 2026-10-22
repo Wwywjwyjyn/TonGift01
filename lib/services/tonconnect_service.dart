@@ -54,7 +54,10 @@ class TonConnectService {
   /// ساخت لینک اتصال و باز کردن کیف پول انتخابی
   Future<String?> generateLink(WalletApp wallet) async {
     if (_manager == null) return null;
-    await _manager!.generateWalletLink(wallet);
+    _manager!.generateWalletLink(wallet);
+    for (var i = 0; i < 30 && _manager!.walletConnectionLink == null; i++) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
     return _manager!.walletConnectionLink;
   }
 

@@ -205,7 +205,7 @@ class _CollectionCard extends ConsumerWidget {
           // چارت بزرگ با فیلتر بازه زمانی
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 220),
-            crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.hideFirst,
+            crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             firstChild: const SizedBox(width: double.infinity, height: 0),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(11, 0, 11, 12),

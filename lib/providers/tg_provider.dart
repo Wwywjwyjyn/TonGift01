@@ -15,6 +15,8 @@ final tgApiProvider = Provider<TgApi>((ref) {
 });
 
 // ---------- نشست تلگرام ----------
+typedef _Num = num;
+
 enum TgPhase { unknown, locked, needApi, disconnected, connected }
 
 class TgUser {
@@ -391,7 +393,7 @@ class TgGift {
     final g = (j['gift'] ?? {}) as Map<String, dynamic>;
     final isUnique = g['kind'] == 'unique';
     return TgGift(
-      msgId: (j['msg_id'] as num?)?.toInt(),
+      msgId: (j['msg_id'] as _Num?)?.toInt(),
       uniqueId: int.tryParse('${g['id'] ?? 0}') ?? 0,
       giftTypeId: int.tryParse('${isUnique ? g['gift_id'] : g['id'] ?? 0}') ?? 0,
       title: (g['title'] ?? '').toString(),
@@ -399,15 +401,15 @@ class TgGift {
       num: int.tryParse('${g['num'] ?? 0}') ?? 0,
       isUnique: isUnique,
       canUpgrade: j['can_upgrade'] == true,
-      upgradeStars: (j['upgrade_stars'] as num?)?.toInt(),
-      transferStars: (j['transfer_stars'] as num?)?.toInt(),
-      canTransferAt: (j['can_transfer_at'] as num?)?.toInt(),
-      canResellAt: (j['can_resell_at'] as num?)?.toInt(),
-      convertStars: (j['convert_stars'] as num?)?.toInt(),
-      date: (j['date'] as num?)?.toInt(),
+      upgradeStars: (j['upgrade_stars'] as _Num?)?.toInt(),
+      transferStars: (j['transfer_stars'] as _Num?)?.toInt(),
+      canTransferAt: (j['can_transfer_at'] as _Num?)?.toInt(),
+      canResellAt: (j['can_resell_at'] as _Num?)?.toInt(),
+      convertStars: (j['convert_stars'] as _Num?)?.toInt(),
+      date: (j['date'] as _Num?)?.toInt(),
       fromName: (j['from_name'] ?? '').toString(),
       listed: j['listed'] == true,
-      listPrice: (j['list_price'] as num?)?.toInt(),
+      listPrice: (j['list_price'] as _Num?)?.toInt(),
       model: (g['model'] ?? '').toString(),
       backdrop: (g['backdrop'] ?? '').toString(),
       symbol: (g['symbol'] ?? '').toString(),
@@ -438,7 +440,7 @@ class TgGift {
       num: int.tryParse('${j['num'] ?? 0}') ?? 0,
       isUnique: true,
       listed: j['resell_stars'] != null,
-      listPrice: (j['resell_stars'] as num?)?.toInt(),
+      listPrice: (j['resell_stars'] as _Num?)?.toInt(),
       model: attr('model'),
       backdrop: attr('backdrop'),
       symbol: attr('symbol'),

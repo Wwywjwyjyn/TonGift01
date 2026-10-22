@@ -12,6 +12,7 @@ import '../../widgets/wallet_sheet.dart';
 import '../market/gift_detail_screen.dart';
 import '../tg/tg_inventory_view.dart';
 import 'add_gift_screen.dart';
+import '../../core/strings.dart';
 
 /// انبار من — تب تلگرام (گیفت‌های استارزی اکانت) + تب تون (کیف پول متصل)
 class InventoryScreen extends ConsumerStatefulWidget {

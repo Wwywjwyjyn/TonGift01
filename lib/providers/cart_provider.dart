@@ -41,7 +41,7 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 
   bool add(GiftItem g) {
-    if (g.address.isEmpty || contains(g.address)) return false;
+    if (g.address.isEmpty || state.contains(g.address)) return false;
     state = CartState(items: [...state.items, g]);
     _persist();
     return true;

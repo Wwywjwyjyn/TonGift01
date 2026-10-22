@@ -5,6 +5,7 @@ import '../core/formatters.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/core_providers.dart';
 import 'common.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// شیت اتصال/وضعیت کیف پول — مثل دکمه Connect Wallet بالای صفحه
 Future<void> showWalletSheet(BuildContext context) {

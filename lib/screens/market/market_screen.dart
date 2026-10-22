@@ -10,6 +10,7 @@ import 'gift_detail_screen.dart';
 import 'collections_screen.dart';
 import '../rent/rent_screen.dart';
 import '../tg/tg_market_view.dart';
+import '../../core/strings.dart';
 
 /// بازار — بخش خرید و فروش با مارکت رسمی تلگرام (استارز) + فید NFT تون
 class MarketScreen extends ConsumerStatefulWidget {

@@ -270,7 +270,7 @@ class S {
   String get tgMessage => fa ? 'پیام همراه هدیه' : 'Gift message';
   String get tgResale => fa ? 'بازار دست‌دوم' : 'Resale Market';
   String get tgResaleEmpty => fa ? 'هنوز هیچ‌یک از این گیفت فروش‌گذاری نشده' : 'No resellers for this gift yet';
-  String get tgListingsCount(int n) => fa ? '$n عدد در فروش' : '$n for sale';
+  String tgListingsCount(int n) => fa ? '$n عدد در فروش' : '$n for sale';
   String get tgBuy => fa ? 'خرید با استارز' : 'Buy with Stars';
   String get tgBuyConfirmTitle => fa ? 'خرید گیفت' : 'Buy Gift';
   String get tgYourBalance => fa ? 'موجودی تو' : 'Your balance';
@@ -281,18 +281,18 @@ class S {
   String get tgSellTg => fa ? 'فروش‌گذاری در بازار' : 'List for Sale';
   String get tgSetPriceTg => fa ? 'قیمت به استارز' : 'Price in Stars';
   String get tgPriceRange => fa ? 'مجاز:' : 'Allowed:';
-  String get tgCommissionNote(String p) => fa
+  String tgCommissionNote(String p) => fa
       ? 'بعد از فروش، ${p}٪ کمیسیون تلگرام کم می‌شود'
       : 'Telegram takes ${p}% commission after the sale';
-  String get tgListedForSale(int p) => fa ? 'با $p استارز فروش‌گذاری شد' : 'Listed for $p Stars';
+  String tgListedForSale(int p) => fa ? 'با $p استارز فروش‌گذاری شد' : 'Listed for $p Stars';
   String get tgUnlistTg => fa ? 'حذف از فروش' : 'Remove from Sale';
   String get tgUnlistedDone => fa ? 'از فروش حذف شد' : 'Removed from sale';
   String get tgTransferredTo => fa ? 'انتقال به' : 'Transferred to';
   String get tgTransferTg => fa ? 'انتقال/هدیه به دوست' : 'Transfer / Gift to a Friend';
-  String get tgTransferFee(int f) => fa ? 'هزینه انتقال: $f استارز' : 'Transfer fee: $f Stars';
+  String tgTransferFee(int f) => fa ? 'هزینه انتقال: $f استارز' : 'Transfer fee: $f Stars';
   String get tgTransferDone => fa ? 'انتقال انجام شد ✓' : 'Transferred ✓';
   String get tgUpgradeTg => fa ? 'آپگرید به گیفت یکتا' : 'Upgrade to Collectible';
-  String get tgUpgradeCost(int c) => fa ? 'هزینه آپگرید: $c استارز' : 'Upgrade cost: $c Stars';
+  String tgUpgradeCost(int c) => fa ? 'هزینه آپگرید: $c استارز' : 'Upgrade cost: $c Stars';
   String get tgUpgradedDone => fa ? 'گیفت یکتا شد ✓' : 'Upgraded to collectible ✓';
   String get tgUpgrading => fa ? 'در حال آپگرید…' : 'Upgrading…';
   String get tgListedBadge => fa ? 'در فروش' : 'Listed';
@@ -306,13 +306,13 @@ class S {
       ? 'اول از گیت API، API ID و API Hash تلگرامت را ذخیره کن'
       : 'First save your Telegram API ID and API Hash in the API gate';
   String get tgLockedMsg => fa ? 'این اپ فقط برای مالکش باز است' : 'This app is locked to its owner';
-  String get tgFloodWait(int s) => fa
+  String tgFloodWait(int s) => fa
       ? 'تلگرام محدودیت گذاشته — $s ثانیه دیگر تلاش کن'
       : 'Telegram rate limit — retry in $s seconds';
   String get tgNumber => fa ? 'شماره' : 'Number';
   String get tgRarity => fa ? 'کمیابی' : 'Rarity';
   String get tgReceived => fa ? 'دریافتی' : 'Received';
-  String get tgGiftsCount(int n) => fa ? '$n گیفت' : '$n gifts';
+  String tgGiftsCount(int n) => fa ? '$n گیفت' : '$n gifts';
   String get tgRefresh => fa ? 'به‌روزرسانی' : 'Refresh';
   String get tgBuyMinNote => fa ? 'حداقل قیمت فروش را تلگرام تعیین می‌کند' : 'Telegram enforces a minimum resale price';
   String get tgFromCatalog => fa ? 'از کاتالوگ' : 'From catalog';

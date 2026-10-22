@@ -79,11 +79,11 @@ class WalletNotifier extends StateNotifier<WalletState> {
 
     if (st != state.status ||
         addr != state.address ||
-        m.wallets.length != state.wallets.length) {
+        svc.wallets.length != state.wallets.length) {
       state = state.copyWith(
         status: st,
         address: addr,
-        wallets: m.wallets,
+        wallets: svc.wallets,
       );
       if (connected && state.pendingLink != null) {
         state = state.copyWith(clearPending: true);

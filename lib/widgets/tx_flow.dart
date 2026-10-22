@@ -8,6 +8,7 @@ import '../providers/core_providers.dart';
 import '../providers/wallet_provider.dart';
 import 'common.dart';
 import 'wallet_sheet.dart';
+import '../providers/inventory_provider.dart' show ordersProvider;
 
 /// جریان کامل یک تراکنش واقعی:
 /// ۱) نمایش مبلغ/گیرنده  ۲) ارسال به کیف پول کاربر (TON Connect)

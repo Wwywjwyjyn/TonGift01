@@ -48,7 +48,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     // وقتی تلگرام وصل شد — کاتالوگ و انبار خودکار تازه شود
     ref.listenManual(tgSessionProvider.select((s) => s.connected), (prev, now) {
-      if (!prev && now) {
+      if (prev != true && now) {
         ref.read(tgCatalogProvider.notifier).refresh();
         ref.read(tgInventoryProvider.notifier).refresh();
         ref.read(tgSessionProvider.notifier).refreshStars();
