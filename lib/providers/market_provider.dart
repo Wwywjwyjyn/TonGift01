@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/gift_item.dart';
-import '../models/models.dart';
-import '../services/api_client.dart';
 import 'core_providers.dart';
 
 enum MarketTab { all, ton, stars }
@@ -141,12 +139,3 @@ class MarketNotifier extends StateNotifier<MarketState> {
 
 final marketProvider =
     StateNotifierProvider<MarketNotifier, MarketState>((ref) => MarketNotifier(ref));
-
-// ---------- کالکشن‌ها ----------
-final collectionsProvider = FutureProvider<List<CollectionModel>>((ref) async {
-  final api = ref.watch(apiProvider);
-  final r = await api.collectionsGifts();
-  return ((r as List? ?? []))
-      .map((e) => CollectionModel.fromJson(e as Map<String, dynamic>))
-      .toList();
-});

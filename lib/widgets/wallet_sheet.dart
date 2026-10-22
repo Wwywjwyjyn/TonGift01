@@ -58,7 +58,9 @@ class _WalletSheetState extends ConsumerState<_WalletSheet> {
             _pendingView(wallet, s),
           ] else ...[
             Text(
-              'هر کدام از کیف پول‌های TON را انتخاب کن — بدون ثبت‌نام',
+              s.fa
+                  ? 'هر کدام از کیف پول‌های TON را انتخاب کن — بدون ثبت‌نام'
+                  : 'Pick any TON wallet — no signup needed',
               style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 12.5, color: Color(AppColors.textDim)),
             ),
             const SizedBox(height: 12),

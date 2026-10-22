@@ -27,9 +27,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _testAndSave() async {
+    final s = ref.read(settingsProvider).s;
     final url = _ctrl.text.trim();
     if (url.isEmpty) {
-      setState(() => _error = 'آدرس بک‌اند را وارد کن');
+      setState(() => _error = s.fa ? 'آدرس بک‌اند را وارد کن' : 'Enter your backend URL');
       return;
     }
     setState(() {
@@ -42,7 +43,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       if (!ok) {
         setState(() {
           _testing = false;
-          _error = 'بک‌اند پاسخ نداد /health — آدرس و اجرای سرور را چک کن';
+          _error = s.fa
+              ? 'بک‌اند پاسخ نداد /health — آدرس و اجرای سرور را چک کن'
+              : 'Backend did not answer /health — check the URL and that the server is running';
         });
         return;
       }
@@ -51,17 +54,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     } catch (e) {
       setState(() {
         _testing = false;
-        _error = 'خطا: $e';
+        _error = '${s.errorOccurred}: $e';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(settingsProvider).s;
     return Scaffold(
-      appBar: widget.canGoBack
-          ? AppBar(title: const Text('تنظیم بک‌اند'))
-          : null,
+      appBar: widget.canGoBack ? AppBar(title: Text(s.setupTitle)) : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -70,16 +72,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             const SizedBox(height: 12),
             const Icon(Icons.dns_rounded, size: 54, color: Color(AppColors.yellow)),
             const SizedBox(height: 14),
-            const Text(
-              'اتصال به بک‌اند',
+            Text(
+              s.setupTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 19, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 19, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'این اپ به بک‌اند خودِ تو وصل می‌شود (سرور پراکسی امن با توکن API). توکن هرگز داخل اپ نیست. آدرس فقط روی همین گوشی ذخیره می‌شود.',
+            Text(
+              s.setupDesc,
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 12.5, height: 2, color: Color(AppColors.textDim)),
+              style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 12.5, height: 2, color: Color(AppColors.textDim)),
             ),
             const SizedBox(height: 22),
             TextField(
@@ -94,7 +96,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Text(_error!, style: const TextStyle(fontFamily: 'Vazirmatn', color: Color(AppColors.red), fontSize: 12)),
             ],
             const SizedBox(height: 18),
-            YellowButton(label: 'تست و ادامه', busy: _testing, onTap: _testAndSave),
+            YellowButton(label: s.testConn, busy: _testing, onTap: _testAndSave),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(14),
@@ -103,16 +105,23 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(AppColors.stroke)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('راهنمای سریع:', style: TextStyle(fontFamily: 'Vazirmatn', fontWeight: FontWeight.w800, fontSize: 13)),
-                  SizedBox(height: 8),
                   Text(
-                    '۱. پوشه backend پروژه را روی یک هاست رایگان (مثل Render) اجرا کن.\n'
-                    '۲. متغیر محیطی MARKETAPP_API_TOKEN را با توکن خودت ست کن.\n'
-                    '۳. آدرس عمومی سرویس را همین‌جا وارد کن.',
-                    style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, height: 2.1, color: Color(AppColors.textDim)),
+                    s.fa ? 'راهنمای سریع:' : 'Quick guide:',
+                    style: const TextStyle(fontFamily: 'Vazirmatn', fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    s.fa
+                        ? '۱. پوشه backend پروژه را روی یک هاست رایگان (مثل Render) اجرا کن.\n'
+                            '۲. متغیر محیطی MARKETAPP_API_TOKEN را با توکن خودت ست کن.\n'
+                            '۳. آدرس عمومی سرویس را همین‌جا وارد کن.'
+                        : '1. Run the backend folder on a free host (e.g. Render).\n'
+                            '2. Set the MARKETAPP_API_TOKEN environment variable with your token.\n'
+                            '3. Enter the public URL of the service here.',
+                    style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, height: 2.1, color: Color(AppColors.textDim)),
                   ),
                 ],
               ),

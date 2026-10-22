@@ -1,0 +1,6 @@
+node_modules/
+.env
+owner.json
+floor_history.json
+tg_sessions.json
+tgcache/

@@ -1,12 +1,45 @@
-# بک‌اند بازار گیفت — پراکسی امن Marketapp API
+# بک‌اند بازار گیفت — پراکسی امن Marketapp API + دروازه MTProto تلگرام
 
-سرور Node.js بدون هیچ وابستگی (نیازی به `npm install` نیست — فقط Node 18+).
+سرور Node.js. بخش پراکسی Marketapp بدون وابستگی است؛ بخش جدید «مارکت رسمی گیفت تلگرام» (MTProto) به دو پکیج نیاز دارد:
+
+```bash
+npm install        # @mtcute/node (لایه ۲۲۳ اسکیمای تلگرام) + long
+```
+
+## مارکت رسمی گیفت تلگرام (MTProto با API ID/Hash خودت)
+
+جریان کامل، ۱۰۰٪ با اکانت تلگرام خود کاربر:
+
+1. **گیت API** (قبلاً بوده): اولین دستگاه API ID/Hash را از my.telegram.org می‌گیرد و فقط روی سرور ذخیره می‌کند (owner.json).
+2. **ورود به تلگرام داخل اپ**: شماره ← کد ← (رمز دومرحله‌ای) — نشست روی سرور در `tg_sessions.json` (با `TG_SESSION_KEY` رمزنگاری AES-256-CBC).
+3. بعد از آن همه‌چیز از مارکت اصلی تلگرام می‌آید:
+
+| مسیر اپ | متد MTProto | کار |
+|---|---|---|
+| `GET /api/tg/catalog` | `payments.getStarGifts` | کل کاتالوگ مارکت اصلی |
+| `GET /api/tg/listings?gift_id&sort` | `payments.getResaleStarGifts` | گیفت‌های دست‌دوم دیگران |
+| `GET /api/tg/floors?ids` | همان (limit=1) | کف قیمت هر نوع گیفت |
+| `GET /api/tg/my-gifts` | `payments.getSavedStarGifts` | انبار من (حتی ذخیره‌نشده‌ها) |
+| `GET /api/tg/stars` | `payments.getStarsStatus` | موجودی استارز |
+| `POST /api/tg/buy` | `getPaymentForm` + `sendStarsForm` با `inputInvoiceStarGiftResale` | خرید از بازار دست‌دوم با استارز |
+| `POST /api/tg/buy-new` | همان با `inputInvoiceStarGift` | خرید گیفت جدید و هدیه به خود/یوزرنیم |
+| `POST /api/tg/list` | `payments.updateStarGiftPrice` | فروش‌گذاری / تغییر قیمت (price=0 یعنی حذف) |
+| `POST /api/tg/unlist` | همان | حذف از فروش |
+| `POST /api/tg/transfer` | `payments.transferStarGift` | انتقال گیفت به یوزرنیم |
+| `POST /api/tg/upgrade` | `payments.upgradeStarGift` | آپگرید به گیفت یکتا |
+| `GET /api/tg/sticker/:docId` | downloadAsBuffer | عکس استیکر (کش دیسک در tgcache/) |
+
+- دسترسی: فقط دستگاه مالک (owner.json) — مگر `TG_OPEN_FOR_ALL=1`
+- خطای FLOOD_WAIT تلگرام → پاسخ 429 با `retry_after`
+- اگر `@mtcute/node` نصب نباشد، فقط بخش `/api/tg/*` غیرفعال می‌شود و بقیه بک‌اند مثل قبل کار می‌کند
 
 ## امنیت
 - توکن API **فقط** در متغیر محیطی `MARKETAPP_API_TOKEN`
 - فایل `.env` کنار `server.js` به‌صورت خودکار خوانده می‌شود (بدون وابستگی) و در `.gitignore` است
 - توکن هرگز به کلاینت برنمی‌گردد و در کد اپ قرار نمی‌گیرد
 - اپ موبایل فقط با این سرور حرف می‌زند
+- api_id/api_hash و نشست‌های تلگرام هرگز به کلاینت برنمی‌گردند
+
 
 ## اجرا
 ```bash

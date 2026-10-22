@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants.dart';
+import '../core/strings.dart';
 import '../core/formatters.dart';
 import '../models/models.dart';
 import '../providers/core_providers.dart';
-import '../providers/inventory_provider.dart';
 import '../providers/wallet_provider.dart';
 import 'common.dart';
 import 'wallet_sheet.dart';
@@ -26,7 +26,7 @@ Future<bool> runTxFlow(
 
   if (!wallet.isConnected) {
     if (!context.mounted) return false;
-    toast(context, 'اول کیف پول را وصل کن');
+    toast(context, s.fa ? 'اول کیف پول را وصل کن' : 'Connect your wallet first');
     await showWalletSheet(context);
     if (!(ref.read(walletProvider).isConnected)) return false;
   }
@@ -174,9 +174,11 @@ class _TxConfirmSheetState extends ConsumerState<_TxConfirmSheet> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(AppColors.yellow).withOpacity(0.25)),
               ),
-              child: const Text(
-                'پرداخت مستقیم با کیف پول خودت انجام می‌شود؛ فقط تراکنش را در کیف پول تأیید کن.',
-                style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 11.5, height: 1.8, color: Color(AppColors.yellow)),
+              child: Text(
+                widget.s.fa
+                    ? 'پرداخت مستقیم با کیف پول خودت انجام می‌شود؛ فقط تراکنش را در کیف پول تأیید کن.'
+                    : 'Payment goes directly with your own wallet; just confirm the transaction in your wallet.',
+                style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 11.5, height: 1.8, color: Color(AppColors.yellow)),
               ),
             ),
             const SizedBox(height: 16),

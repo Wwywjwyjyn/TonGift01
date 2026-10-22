@@ -30,15 +30,6 @@ jobs:
           cp -f android_overlay/app/build.gradle android/app/build.gradle
           cp -f android_overlay/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
-      - name: Fix Dart code errors
-        run: |
-          sed -i "1i import '../core/strings.dart';" lib/providers/core_providers.dart
-          for f in lib/providers/inventory_provider.dart lib/providers/market_provider.dart lib/widgets/common.dart; do sed -i "1i import '../services/api_client.dart';" $f; done
-          for f in lib/screens/inventory/inventory_screen.dart lib/screens/premium/premium_screen.dart lib/screens/stars/stars_screen.dart lib/screens/market/collections_screen.dart; do sed -i "1i import '../../services/api_client.dart';" $f; done
-          sed -i "1i import 'package:cached_network_image/cached_network_image.dart';" lib/widgets/wallet_sheet.dart
-          sed -i 's/await _manager!.generateWalletLink(wallet);/_manager!.generateWalletLink(wallet);/' lib/services/tonconnect_service.dart
-          sed -i 's/\bm\.wallets/svc.wallets/g' lib/providers/wallet_provider.dart
-
       - name: Pub get
         run: flutter pub get
 

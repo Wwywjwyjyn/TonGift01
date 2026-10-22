@@ -1,7 +1,7 @@
 {
   "name": "bazaar-gift-backend",
   "version": "1.0.0",
-  "description": "Secure proxy backend for Telegram Gift Market app (Marketapp API + TON)",
+  "description": "Secure proxy backend for Telegram Gift Market app (Marketapp API + TON + MTProto official gift market)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,5 +9,9 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@mtcute/node": "^0.32.6",
+    "long": "^5.3.2"
+  }
 }

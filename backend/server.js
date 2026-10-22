@@ -220,6 +220,109 @@ async function tonIrtRate() {
   return null;
 }
 
+// ---------- گیت «اولین کاربر» برای API ID / API Hash تلگرام ----------
+// فقط اولین دستگاهی که وضعیت را می‌پرسد، «مالک» شناخته می‌شود.
+// هیچ‌گاه api_hash به هیچ کلاینتی برگردانده نمی‌شود؛ فقط روی همین سرور ذخیره می‌شود.
+const OWNER_FILE = path.join(__dirname, 'owner.json');
+function loadOwner() {
+  try { return JSON.parse(fs.readFileSync(OWNER_FILE, 'utf8')); } catch (_) { return null; }
+}
+function saveOwner(o) {
+  try { fs.writeFileSync(OWNER_FILE, JSON.stringify(o, null, 2)); } catch (_) {}
+}
+function randToken() {
+  return require('crypto').randomBytes(24).toString('hex');
+}
+function ownerStatus(req) {
+  const dev = String(req.headers['x-device-token'] || '');
+  const o = loadOwner();
+  if (!o) {
+    // هنوز هیچ‌کس نیامده — توکن خودِ همین دستگاه اول = مالک
+    const fresh = {
+      state: 'pending',
+      owner_token: dev || randToken(),
+      created_at: Date.now(),
+      api_id: null,
+      api_hash: null,
+    };
+    saveOwner(fresh);
+    return { state: 'pending', is_owner: !!dev, device_token: dev, api_id_set: false };
+  }
+  // hatch اضطراری: اگر OWNER_DEVICE_TOKEN روی سرور ست شده باشد، آن دستگاه مالک است
+  const forced = String(process.env.OWNER_DEVICE_TOKEN || '').trim();
+  if (forced && dev === forced && o.owner_token !== forced) {
+    o.owner_token = forced;
+    if (o.state === 'pending') { o.api_id = null; o.api_hash = null; }
+    saveOwner(o);
+  }
+  const isOwner = !!dev && (dev === o.owner_token || (forced && dev === forced));
+  if (o.state === 'pending') {
+    return isOwner
+      ? { state: 'pending', is_owner: true, device_token: dev, api_id_set: false }
+      : { state: 'locked', is_owner: false, api_id_set: false }; // نفر اول درگیر است — به بقیه هیچ‌وقت نشان داده نمی‌شود
+  }
+  return { state: 'claimed', is_owner: isOwner, api_id_set: !!o.api_id };
+}
+
+// ---------- تاریخچه کف قیمت کالکشن‌ها (داده واقعیِ تجمع‌شده از فید کالکشن‌ها) ----------
+const FLOOR_FILE = path.join(__dirname, 'floor_history.json');
+const FLOOR_RANGES = { '1d': 1, '1w': 7, '1m': 30, '3m': 90, '6m': 182, '1y': 365 };
+let _floorDb = null;
+function floorDb() {
+  if (_floorDb) return _floorDb;
+  try { _floorDb = JSON.parse(fs.readFileSync(FLOOR_FILE, 'utf8')); } catch (_) { _floorDb = { snapshots: [] }; }
+  if (!Array.isArray(_floorDb.snapshots)) _floorDb.snapshots = [];
+  return _floorDb;
+}
+function saveFloorDb() {
+  try { fs.writeFileSync(FLOOR_FILE, JSON.stringify(_floorDb)); } catch (_) {}
+}
+let _lastFloorPoll = 0;
+async function pollFloors() {
+  if (!TOKEN) return;
+  if (Date.now() - _lastFloorPoll < 9 * 60 * 1000) return; // حداکثر هر ۹ دقیقه
+  _lastFloorPoll = Date.now();
+  try {
+    const r = await fetchJson(`${MARKETAPP_BASE}/v1/collections/gifts/`, { headers: { 'Authorization': TOKEN } }, 15000);
+    if (r.status !== 200 || !Array.isArray(r.body)) return;
+    const db = floorDb();
+    const last = db.snapshots.length ? db.snapshots[db.snapshots.length - 1] : null;
+    if (last && Date.now() - last.ts < 10 * 60 * 1000) return; // اسنپ‌شات تکراری ثبت نشود
+    const floors = {};
+    for (const c of r.body) {
+      const addr = (c && c.address || '').toString();
+      if (!addr) continue;
+      const e = (c.extra_data || {});
+      floors[addr] = { f: Number(e.floor || 0) / 1e9, rf: Number(e.rent_floor || 0) / 1e9 };
+    }
+    db.snapshots.push({ ts: Date.now(), floors });
+    const cutoff = Date.now() - 400 * 86400 * 1000;
+    while (db.snapshots.length && db.snapshots[0].ts < cutoff) db.snapshots.shift();
+    saveFloorDb();
+    console.log(`[bazaar-gift] floor snapshot saved (${Object.keys(floors).length} collections, ${db.snapshots.length} total)`);
+  } catch (e) { /* بی‌صدا — پول بعدی */ }
+}
+function floorHistory(addr, range) {
+  const days = FLOOR_RANGES[range] || 30;
+  const cutoff = Date.now() - days * 86400 * 1000;
+  const db = floorDb();
+  const pts = [];
+  for (const s of db.snapshots) {
+    if (s.ts < cutoff) continue;
+    const f = s.floors[addr];
+    if (f && f.f > 0) pts.push({ t: s.ts, v: f.f });
+  }
+  // نمونه‌برداری به حداکثر ۱۲۰ نقطه برای رسم روان
+  const MAX = 120;
+  let out = pts;
+  if (pts.length > MAX) {
+    out = [];
+    const step = (pts.length - 1) / (MAX - 1);
+    for (let i = 0; i < MAX; i++) out.push(pts[Math.round(i * step)]);
+  }
+  return out;
+}
+
 // ---------- بررسی وضعیت پلن (فید فروش واقعی فعال است؟) ----------
 async function saleFeedAvailable() {
   const c = cacheGet('salefeed', 300000);
@@ -233,15 +336,29 @@ async function saleFeedAvailable() {
   return ok;
 }
 
+// ---------- دروازه MTProto تلگرام (مارکت رسمی گیفت‌ها) ----------
+// @mtcute/node + long — با npm install نصب می‌شود؛ اگر نبود بقیه بک‌اند بدون تغییر کار می‌کند
+let tgHandle = null;
+import('./mtproto.mjs')
+  .then((m) => { tgHandle = m.handleTg; console.log('[bazaar-gift] MTProto gateway ready (layer 223)'); })
+  .catch((e) => console.log('[bazaar-gift] MTProto gateway DISABLED:', e.message));
+
 // ---------- مسیرها ----------
 async function handle(req, res, pathname, query, body) {
   // سلامت
   if (pathname === '/api/health') {
     const saleFeed = TOKEN ? await saleFeedAvailable() : false;
+    let tgReady = false;
+    try {
+      const o = loadOwner();
+      tgReady = !!(process.env.TELEGRAM_API_ID || (o && o.api_id));
+    } catch (_) {}
     return sendJson(res, 200, {
       ok: true,
       token_set: !!TOKEN,
       sale_feed: saleFeed,
+      tg_ready: tgReady,
+      tg_gateway: !!tgHandle,
       sale_feed_note: saleFeed ? 'فید فروش واقعی فعال است' : 'فید فروش واقعی نیاز به پلن API دارد — فید اجاره جایگزین می‌شود',
       name: APP_NAME,
       time: Date.now(),
@@ -282,6 +399,51 @@ async function handle(req, res, pathname, query, body) {
     } catch (_) {
       return sendJson(res, 404, { detail: 'icon not found' });
     }
+  }
+
+  // ---- گیت اولین کاربر (بدون نیاز به توکن مارکت‌اپ) ----
+  if (pathname === '/api/owner/status' && req.method === 'GET') {
+    return sendJson(res, 200, ownerStatus(req));
+  }
+  if (pathname === '/api/owner/claim' && req.method === 'POST') {
+    const dev = String(req.headers['x-device-token'] || '');
+    const o = loadOwner();
+    if (!o || o.state !== 'pending' || !dev || dev !== o.owner_token) {
+      return sendJson(res, 403, { detail: 'only the first user can claim' });
+    }
+    const apiId = parseInt(body.api_id, 10);
+    const apiHash = String(body.api_hash || '').trim();
+    if (!apiId || apiId < 1 || !/^[a-f0-9]{32}$/.test(apiHash)) {
+      return sendJson(res, 400, { detail: 'invalid api_id or api_hash (must be 32 hex chars from my.telegram.org)' });
+    }
+    saveOwner({ state: 'claimed', owner_token: dev, created_at: o.created_at, claimed_at: Date.now(), api_id: apiId, api_hash: apiHash });
+    return sendJson(res, 200, { ok: true, state: 'claimed', is_owner: true });
+  }
+
+  // ---- تاریخچه کف قیمت (داده واقعی جمع‌شده روی سرور) ----
+  if (pathname === '/api/floor-history' && req.method === 'GET') {
+    const addr = String(query.addr || '');
+    const range = FLOOR_RANGES[query.range] ? query.range : '1m';
+    if (!addr) return sendJson(res, 400, { detail: 'addr required' });
+    const points = floorHistory(addr, range);
+    return sendJson(res, 200, { addr, range, points, snapshot_count: floorDb().snapshots.length });
+  }
+
+  // ---- دروازه MTProto: /api/tg/* (مارکت رسمی گیفت تلگرام) ----
+  if (pathname.startsWith('/api/tg/')) {
+    if (!tgHandle) return sendJson(res, 503, { detail: 'MTProto gateway not loaded — روی سرور npm install اجرا کنید' });
+    const dev = String(req.headers['x-device-token'] || '');
+    const out = await tgHandle({ method: req.method, pathname, query, body, dev });
+    if (!out) return sendJson(res, 404, { detail: 'no tg route' });
+    if (out.raw) {
+      res.writeHead(out.status || 200, {
+        'Content-Type': out.type || 'image/jpeg',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=86400',
+      });
+      return res.end(out.raw);
+    }
+    return sendJson(res, out.status, out.body);
   }
 
   if (!pathname.startsWith('/api/')) return sendJson(res, 404, { detail: 'not found' });
@@ -660,4 +822,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`[bazaar-gift] backend listening on :${PORT}`);
   console.log(`[bazaar-gift] MARKETAPP_API_TOKEN is ${TOKEN ? 'SET ✓' : 'MISSING ✗ (متغیر محیطی را ست کنید)'}`);
+  // پولر کف قیمت — اسنپ‌شات واقعی هر ۱۵ دقیقه (چارت کالکشن‌ها از همین داده واقعی پر می‌شود)
+  setTimeout(pollFloors, 4000);
+  setInterval(pollFloors, 15 * 60 * 1000);
 });

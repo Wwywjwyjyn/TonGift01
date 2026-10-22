@@ -34,12 +34,14 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     Object? body,
+    Map<String, String>? headers,
     Duration timeout = const Duration(seconds: 25),
   }) async {
     try {
       final uri = _u(path, query);
       final req = http.Request(method, uri);
       req.headers['Content-Type'] = 'application/json';
+      if (headers != null) req.headers.addAll(headers);
       if (body != null) req.body = jsonEncode(body);
       final res = await _http.send(req).timeout(timeout);
       final text = await res.stream.bytesToString();
@@ -50,12 +52,12 @@ class ApiClient {
         json = {'raw': text};
       }
       if (res.statusCode >= 200 && res.statusCode < 300) return json;
-      final detail = json is Map ? (json['detail'] ?? json['error'] ?? 'خطا ${res.statusCode}') : 'خطا ${res.statusCode}';
+      final detail = json is Map ? (json['detail'] ?? json['error'] ?? 'Error ${res.statusCode}') : 'Error ${res.statusCode}';
       throw ApiException(res.statusCode, detail.toString());
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException(0, 'خطای شبکه: بک‌اند در دسترس نیست');
+      throw ApiException(0, 'Network error: backend unreachable');
     }
   }
 
@@ -93,26 +95,70 @@ class ApiClient {
       _req('POST', '/api/premium/buy',
           body: {'username': username, 'months': months, 'currency': currency});
 
+  // ---------- گیت اولین کاربر (API ID / API Hash فقط روی بک‌اند ذخیره می‌شود) ----------
+  Future<dynamic> ownerStatus(String deviceToken) => _req('GET', '/api/owner/status',
+      headers: {'X-Device-Token': deviceToken}, timeout: const Duration(seconds: 8));
+
+  Future<dynamic> ownerClaim(String deviceToken, String apiId, String apiHash) =>
+      _req('POST', '/api/owner/claim',
+          headers: {'X-Device-Token': deviceToken},
+          body: {'api_id': apiId, 'api_hash': apiHash});
+
+  // ---------- تاریخچه کف قیمت کالکشن (داده واقعی تجمع‌شده روی بک‌اند) ----------
+  /// range: 1d | 1w | 1m | 3m | 6m | 1y
+  Future<dynamic> floorHistory(String addr, {String range = '1m'}) =>
+      _req('GET', '/api/floor-history', query: {'addr': addr, 'range': range});
+
   // ---------- کالکشن‌ها ----------
   Future<dynamic> collectionsGifts() =>
       _req('GET', '/api/collections/gifts');
+
+  Future<dynamic> collectionsAttributes(String address) =>
+      _req('GET', '/api/collections/attributes/$address');
 
   // ---------- مارکت ----------
   Future<dynamic> giftsOnsale({
     int limit = 50,
     String? cursor,
     String? collectionAddress,
-    String? sortBy,
+    String? model,
+    String? backdrop,
+    String? symbol,
+    String? minPrice,
+    String? maxPrice,
+    String? sortBy, // min_bid_asc | min_bid_desc | recently_touch
   }) =>
       _req('GET', '/api/gifts/onsale', query: {
         'limit': limit,
         'cursor': cursor,
         'collection_address': collectionAddress,
+        'model': model,
+        'backdrop': backdrop,
+        'symbol': symbol,
+        'min_price': minPrice,
+        'max_price': maxPrice,
         'sort_by': sortBy,
       });
 
-  Future<dynamic> rentGifts({int limit = 50, String? cursor}) =>
-      _req('GET', '/api/rent/gifts', query: {'limit': limit, 'cursor': cursor});
+  /// فید اجاره با فیلترهای کامل مارکت‌اپ (کالکشن/مدل/بک‌گراند/سمبل/مرتب‌سازی)
+  Future<dynamic> rentGifts({
+    int limit = 50,
+    String? cursor,
+    String? collectionAddress,
+    String? model,
+    String? backdrop,
+    String? symbol,
+    String? sortBy,
+  }) =>
+      _req('GET', '/api/rent/gifts', query: {
+        'limit': limit,
+        'cursor': cursor,
+        'collection_address': collectionAddress,
+        'model': model,
+        'backdrop': backdrop,
+        'symbol': symbol,
+        'sort_by': sortBy,
+      });
 
   /// پرداخت اجاره — duration به ثانیه (حداقل از آیتم فید) و قیمت روزانه به نانوتون (همان رشته فید)
   Future<dynamic> rentPay(String nftAddress,

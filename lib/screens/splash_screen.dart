@@ -50,6 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(settingsProvider).s;
     return Scaffold(
       body: Center(
         child: Column(
@@ -65,14 +66,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: const Icon(Icons.card_giftcard_rounded, size: 48, color: Color(0xFF111111)),
             ),
             const SizedBox(height: 18),
-            const Text(
-              'بازار گیفت',
-              style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 22, fontWeight: FontWeight.w800),
+            Text(
+              s.appTitle,
+              style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'مارکت واقعی گیفت‌های تلگرام — TON و استارز',
-              style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, color: Color(0xFF9A9AA3)),
+            Text(
+              s.fa ? 'مارکت واقعی گیفت‌های تلگرام — TON و استارز' : 'The real Telegram gifts market — TON & Stars',
+              style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, color: Color(0xFF9A9AA3)),
             ),
             const SizedBox(height: 26),
             const SizedBox(

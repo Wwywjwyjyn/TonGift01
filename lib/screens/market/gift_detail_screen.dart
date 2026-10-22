@@ -7,6 +7,7 @@ import '../../core/ton_utils.dart';
 import '../../models/gift_item.dart';
 import '../../models/models.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/cart_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../services/api_client.dart';
@@ -40,20 +41,24 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
         {'nft_address': g.address, 'price': (g.priceTon! * 1e9).round().toString(), 'currency': g.currency},
       ]);
       final tx = (r is Map && r['transaction'] is Map) ? (r['transaction'] as Map).cast<String, dynamic>() : null;
-      if (tx == null) throw ApiException(0, 'تراکنشی از سرور برنگشت');
+      if (tx == null) throw ApiException(0, ref.read(settingsProvider).s.serverResponseIncomplete);
       if (!mounted) return;
       await runTxFlow(
         context,
         ref,
         tx: tx,
-        title: 'خرید ${g.displayName}',
-        subtitle: 'قیمت: ${fmtTon(g.priceTon)} ${g.currency}',
+        title: '${ref.read(settingsProvider).s.buyWithTon}: ${g.displayName}',
+        subtitle: '${fmtTon(g.priceTon)} ${g.currency}',
         type: OrderType.gift,
       );
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.isPaidRequired) {
-        toast(context, 'خرید NFT نیازمند فعال‌سازی پلن API در بک‌اند است', error: true);
+        toast(context,
+            ref.read(settingsProvider).s.fa
+                ? 'خرید NFT نیازمند فعال‌سازی پلن API در بک‌اند است'
+                : 'Buying NFTs needs the API plan activation on the backend',
+            error: true);
       } else {
         toast(context, e.detail, error: true);
       }
@@ -72,19 +77,24 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
       final int duration =
           (g.raw['min_duration'] is int) ? g.raw['min_duration'] as int : 86400;
       final String ppd = (g.raw['price_per_day'] ?? '').toString();
-      if (ppd.isEmpty) throw ApiException(0, 'قیمت اجاره این گیفت در دسترس نیست');
+      if (ppd.isEmpty) {
+        throw ApiException(0,
+            ref.read(settingsProvider).s.fa
+                ? 'قیمت اجاره این گیفت در دسترس نیست'
+                : 'Rent price for this gift is unavailable');
+      }
       final r = await api.rentPay(g.address,
           duration: duration, pricePerDayNano: ppd);
       final tx = (r is Map && r['transaction'] is Map) ? (r['transaction'] as Map).cast<String, dynamic>() : null;
-      if (tx == null) throw ApiException(0, 'تراکنشی از سرور برنگشت');
+      if (tx == null) throw ApiException(0, ref.read(settingsProvider).s.serverResponseIncomplete);
       if (!mounted) return;
       final days = (duration / 86400).round();
       await runTxFlow(
         context,
         ref,
         tx: tx,
-        title: 'اجاره ${g.displayName}',
-        subtitle: 'قیمت روزانه: ${fmtTon(g.pricePerDayTon)} TON • مدت: $days روز',
+        title: '${ref.read(settingsProvider).s.rentNow}: ${g.displayName}',
+        subtitle: '${fmtTon(g.pricePerDayTon)} TON ${ref.read(settingsProvider).s.perDay} • $days ${ref.read(settingsProvider).s.daysShort}',
         type: OrderType.gift,
       );
     } on ApiException catch (e) {
@@ -99,7 +109,7 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
   Future<void> _openTg() async {
     final uri = Uri.parse(g.telegramUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) toast(context, 'تلگرام باز نشد — لینک: ${g.telegramUrl}');
+      if (mounted) toast(context, ref.read(settingsProvider).s.fa ? 'تلگرام باز نشد — لینک: ${g.telegramUrl}' : 'Telegram did not open — link: ${g.telegramUrl}');
     }
   }
 
@@ -107,8 +117,11 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(settingsProvider).s;
     final wallet = ref.watch(walletProvider);
+    final cart = ref.watch(cartProvider);
     final isStars = g.currency.toUpperCase() == 'STARS';
     final isMine = wallet.isConnected && g.owner != null && tonSameAddress(g.owner, wallet.address);
+    final isSale = g.kind == 'sale' && g.status == 'for_sale' && g.priceTon != null && !isMine;
+    final inCart = g.address.isNotEmpty && cart.contains(g.address);
 
     return Scaffold(
       appBar: AppBar(title: Text(g.displayName)),
@@ -149,7 +162,7 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
                   const SizedBox(width: 8),
                   Text(
                     g.kind == 'rent'
-                        ? '${fmtTon(g.pricePerDayTon)} TON / روز'
+                        ? '${fmtTon(g.pricePerDayTon)} TON ${s.perDay}'
                         : isStars
                             ? '${fmtStars(parseNumFlexible(g.raw['min_bid']) ?? 0)} ★'
                             : '${fmtTon(g.priceTon)} TON',
@@ -177,8 +190,20 @@ class _GiftDetailScreenState extends ConsumerState<GiftDetailScreen> {
               InfoRow(label: s.from, value: isMine ? s.you : shortAddr(g.owner!), copyable: !isMine),
             const SizedBox(height: 18),
             // دکمه‌ها
-            if (g.kind == 'sale' && g.status == 'for_sale' && !isMine)
+            if (isSale) ...[
               YellowButton(label: s.buyWithTon, busy: _busy, onTap: _buy),
+              const SizedBox(height: 9),
+              GhostButton(
+                label: inCart ? '${s.inCart} ✓' : s.addToCart,
+                onTap: inCart
+                    ? null
+                    : () {
+                        final ok = ref.read(cartProvider.notifier).add(g);
+                        if (ok) toast(context, s.addedToCart);
+                      },
+                color: inCart ? const Color(AppColors.green) : null,
+              ),
+            ],
             if (g.kind == 'rent') YellowButton(label: s.rentNow, busy: _busy, onTap: _rent),
             const SizedBox(height: 10),
             GhostButton(label: s.openInTelegram, onTap: _openTg),

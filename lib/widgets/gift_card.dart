@@ -1,9 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants.dart';
+import '../core/strings.dart';
 import '../core/formatters.dart';
 import '../core/ton_utils.dart';
 import '../models/gift_item.dart';
+import '../providers/cart_provider.dart';
+import '../providers/core_providers.dart';
+import 'common.dart';
 
 class GiftImage extends StatelessWidget {
   final GiftItem item;
@@ -56,20 +61,25 @@ class GiftImage extends StatelessWidget {
   }
 }
 
-class GiftCard extends StatelessWidget {
+/// کارت گیفت — جمع‌وجور و ریسپانسیو (مثل مارکت‌اپ) + دکمه سبد خرید
+class GiftCard extends ConsumerWidget {
   final GiftItem item;
   final VoidCallback onTap;
   const GiftCard({super.key, required this.item, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider).s;
     final isStars = item.currency.toUpperCase() == 'STARS';
+    final isSale = item.kind == 'sale' && item.status == 'for_sale' && item.priceTon != null;
+    final inCart = item.address.isNotEmpty && ref.watch(cartProvider).contains(item.address);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: const Color(AppColors.card),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: const Color(AppColors.stroke)),
         ),
         child: Column(
@@ -77,22 +87,29 @@ class GiftCard extends StatelessWidget {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     GiftImage(item: item),
                     Positioned(
                       top: 6,
+                      left: 6,
                       right: 6,
-                      child: _kindBadge(),
+                      child: Row(
+                        children: [
+                          _kindBadge(s),
+                          const Spacer(),
+                          if (isSale) _cartButton(context, ref, inCart),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(9, 7, 9, 9),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -100,22 +117,22 @@ class GiftCard extends StatelessWidget {
                     item.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 13, fontWeight: FontWeight.w700),
+                    style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 12.5, fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   // آیدی گیفت زیر عکس
                   Text(
                     item.slug,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 10.5, color: Color(AppColors.textDim)),
+                    style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 10, color: Color(AppColors.textDim)),
                   ),
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(
                         isStars ? Icons.star_rounded : Icons.diamond_outlined,
-                        size: 14,
+                        size: 13,
                         color: const Color(AppColors.yellow),
                       ),
                       const SizedBox(width: 4),
@@ -124,13 +141,13 @@ class GiftCard extends StatelessWidget {
                           isStars
                               ? '${fmtStars(parseNumFlexible(item.raw['min_bid']) ?? parseNumFlexible(item.raw['price']) ?? 0)} ★'
                               : item.kind == 'rent'
-                                  ? '${fmtTon(item.pricePerDayTon)}/روز'
+                                  ? '${fmtTon(item.pricePerDayTon)}${s.perDay}'
                                   : item.priceTon != null
                                       ? '${fmtTon(item.priceTon)} TON'
                                       : '—',
                           style: const TextStyle(
                             fontFamily: 'Vazirmatn',
-                            fontSize: 12.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: Color(AppColors.yellow),
                           ),
@@ -147,29 +164,57 @@ class GiftCard extends StatelessWidget {
     );
   }
 
-  Widget _kindBadge() {
+  Widget _cartButton(BuildContext context, WidgetRef ref, bool inCart) {
+    return GestureDetector(
+      onTap: () {
+        if (inCart) return;
+        final ok = ref.read(cartProvider.notifier).add(item);
+        if (ok) {
+          toast(context, ref.read(settingsProvider).s.addedToCart);
+        }
+      },
+      child: Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          color: inCart ? const Color(AppColors.yellow).withOpacity(0.9) : Colors.black54,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: inCart ? const Color(AppColors.yellow) : Colors.white24,
+          ),
+        ),
+        child: Icon(
+          inCart ? Icons.check_rounded : Icons.add_shopping_cart_rounded,
+          size: 14,
+          color: inCart ? const Color(0xFF111111) : Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _kindBadge(S s) {
     final String label;
     final Color c;
     if (item.kind == 'rent') {
-      label = 'اجاره';
+      label = s.forRent;
       c = const Color(AppColors.blue);
     } else if (item.status == 'for_sale') {
-      label = 'فروش';
+      label = s.forSale;
       c = const Color(AppColors.yellow);
     } else {
-      label = 'مالک';
+      label = s.owner;
       c = const Color(AppColors.green);
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
       decoration: BoxDecoration(
         color: Colors.black54,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(7),
         border: Border.all(color: c.withOpacity(0.6)),
       ),
       child: Text(
         label,
-        style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 10, fontWeight: FontWeight.w700, color: c),
+        style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 9.5, fontWeight: FontWeight.w700, color: c),
       ),
     );
   }

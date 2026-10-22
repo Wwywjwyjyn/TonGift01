@@ -133,7 +133,8 @@ class ChipTag extends StatelessWidget {
 
 class LoadingGrid extends StatelessWidget {
   final int count;
-  const LoadingGrid({super.key, this.count = 6});
+  final int columns;
+  const LoadingGrid({super.key, this.count = 6, this.columns = 2});
 
   @override
   Widget build(BuildContext context) {
@@ -141,8 +142,8 @@ class LoadingGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.72,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.76,
       ),
       itemCount: count,
       itemBuilder: (_, __) => Container(
@@ -204,7 +205,8 @@ class EmptyPanel extends StatelessWidget {
 class ErrorPanel extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
-  const ErrorPanel({super.key, required this.message, this.onRetry});
+  final String retryLabel;
+  const ErrorPanel({super.key, required this.message, this.onRetry, this.retryLabel = 'Retry / تلاش مجدد'});
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +225,7 @@ class ErrorPanel extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 14),
-              GhostButton(label: 'تلاش مجدد', onTap: onRetry, color: const Color(AppColors.yellow)),
+              GhostButton(label: retryLabel, onTap: onRetry, color: const Color(AppColors.yellow)),
             ],
           ],
         ),
@@ -242,9 +244,54 @@ void toast(BuildContext context, String msg, {bool error = false}) {
   );
 }
 
-void copyText(BuildContext context, String text) {
+void copyText(BuildContext context, String text, [String? message]) {
   Clipboard.setData(ClipboardData(text: text));
-  toast(context, 'کپی شد ✓');
+  toast(context, message ?? 'Copied ✓ | کپی شد ✓');
+}
+
+/// تگ کوچک برای مشخصات (مدل/بک‌گراند/سمبل)
+class MiniTag extends StatelessWidget {
+  final String text;
+  final Color? color;
+  const MiniTag({super.key, required this.text, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? const Color(AppColors.textDim);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 9.5, fontWeight: FontWeight.w600, color: c),
+      ),
+    );
+  }
+}
+
+/// بج نشانگر تعداد (برای سبد خرید و فیلترها)
+class CountBadge extends StatelessWidget {
+  final int count;
+  const CountBadge({super.key, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 16,
+      height: 16,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(color: Color(AppColors.yellow), shape: BoxShape.circle),
+      child: Text(
+        '$count',
+        style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF111111)),
+      ),
+    );
+  }
 }
 
 class InfoRow extends StatelessWidget {

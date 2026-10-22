@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import 'core/theme.dart';
+import 'providers/core_providers.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -21,19 +22,25 @@ class GiftMarketApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // زبان مارکت انگلیسی است؛ فارسی از تنظیمات انتخاب می‌شود
+    final fa = ref.watch(settingsProvider.select((s) => s.fa));
     return MaterialApp(
-      title: 'بازار گیفت',
+      title: 'Gift Market | بازار گیفت',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      locale: const Locale('fa'),
-      supportedLocales: const [Locale('fa'), Locale('en')],
+      locale: Locale(fa ? 'fa' : 'en'),
+      supportedLocales: const [Locale('en'), Locale('fa')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       builder: (context, child) {
-        return Directionality(textDirection: TextDirection.rtl, child: child!);
+        // راست‌به‌چپ فقط برای فارسی — انگلیسی چپ‌به‌راست
+        return Directionality(
+          textDirection: fa ? TextDirection.rtl : TextDirection.ltr,
+          child: child!,
+        );
       },
       home: const SplashScreen(),
     );

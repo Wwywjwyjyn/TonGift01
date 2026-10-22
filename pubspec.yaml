@@ -1,7 +1,7 @@
 name: gift_market
-description: بازار گیفت تلگرام — مارکت واقعی گیفت‌های TON و استارز
+description: بازار گیفت تلگرام — مارکت رسمی گیفت‌های استارزی تلگرام (MTProto) + TON
 publish_to: 'none'
-version: 2.0.0+2
+version: 3.0.0+4
 
 environment:
   sdk: '>=3.2.0 <4.0.0'

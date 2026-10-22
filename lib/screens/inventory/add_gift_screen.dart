@@ -26,9 +26,10 @@ class _AddGiftScreenState extends ConsumerState<AddGiftScreen> {
   GiftItem? _found;
 
   Future<void> _detect() async {
+    final s = ref.read(settingsProvider).s;
     final link = _ctrl.text.trim();
     if (link.isEmpty) {
-      setState(() => _error = 'لینک گیفت را بچسبان');
+      setState(() => _error = s.fa ? 'لینک گیفت را بچسبان' : 'Paste the gift link');
       return;
     }
     setState(() {
@@ -58,10 +59,11 @@ class _AddGiftScreenState extends ConsumerState<AddGiftScreen> {
   }
 
   Future<void> _openTelegram() async {
+    final s = ref.read(settingsProvider).s;
     try {
       await launchUrl(Uri.parse('tg://'), mode: LaunchMode.externalApplication);
     } catch (_) {
-      if (mounted) toast(context, 'تلگرام باز نشد — آیا تلگرام نصب است؟', error: true);
+      if (mounted) toast(context, s.fa ? 'تلگرام باز نشد — آیا تلگرام نصب است؟' : 'Telegram did not open — is it installed?', error: true);
     }
   }
 
@@ -138,7 +140,7 @@ class _AddGiftScreenState extends ConsumerState<AddGiftScreen> {
                         Expanded(
                           child: Text(
                             isMine
-                                ? '${s.from}: ${s.you} — آماده فروش است'
+                                ? s.fa ? '${s.from}: ${s.you} — آماده فروش است' : '${s.from}: ${s.you} — ready to sell'
                                 : wallet.isConnected
                                     ? s.notInYourWallet
                                     : s.notInYourWallet,
@@ -156,7 +158,7 @@ class _AddGiftScreenState extends ConsumerState<AddGiftScreen> {
                   label: s.sellGift,
                   onTap: () {
                     Navigator.pop(context);
-                    toast(context, 'از انبار روی گیفت بزن و «فروش گیفت» را انتخاب کن');
+                    toast(context, s.fa ? 'از انبار روی گیفت بزن و «فروش گیفت» را انتخاب کن' : 'Tap a gift in Inventory and choose Sell Gift');
                   },
                 )
               else ...[
@@ -165,7 +167,7 @@ class _AddGiftScreenState extends ConsumerState<AddGiftScreen> {
                     label: s.connectWallet,
                     onTap: () {
                       Navigator.pop(context);
-                      toast(context, 'از بالای صفحه کیف پول را وصل کن تا انبارت خودکار پر شود');
+                      toast(context, s.fa ? 'از بالای صفحه کیف پول را وصل کن تا انبارت خودکار پر شود' : 'Connect your wallet from the top bar so your inventory fills automatically');
                     },
                   ),
               ],

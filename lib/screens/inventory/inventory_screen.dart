@@ -10,9 +10,10 @@ import '../../widgets/gift_card.dart';
 import '../../widgets/common.dart';
 import '../../widgets/wallet_sheet.dart';
 import '../market/gift_detail_screen.dart';
+import '../tg/tg_inventory_view.dart';
 import 'add_gift_screen.dart';
 
-/// انبار من — گیفت‌های کیف پول متصل + فروش/قیمت/لغو
+/// انبار من — تب تلگرام (گیفت‌های استارزی اکانت) + تب تون (کیف پول متصل)
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -21,6 +22,7 @@ class InventoryScreen extends ConsumerStatefulWidget {
 }
 
 class _InventoryScreenState extends ConsumerState<InventoryScreen> {
+  bool _tgMode = true; // پیش‌فرض: انبار تلگرام
   @override
   void initState() {
     super.initState();
@@ -102,9 +104,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               decoration: InputDecoration(hintText: s.sellPriceHint),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'پس از تأیید، تراکنش اتصال گیفت به قرارداد فروش را در کیف پولت امضا می‌کنی — کاملاً روی بلاکچین.',
-              style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 11, height: 1.9, color: Color(AppColors.textDim)),
+            Text(
+              s.fa
+                  ? 'پس از تأیید، تراکنش اتصال گیفت به قرارداد فروش را در کیف پولت امضا می‌کنی — کاملاً روی بلاکچین.'
+                  : 'After confirming, you sign the sale-contract transaction in your wallet — fully on-chain.',
+              style: const TextStyle(fontFamily: 'Vazirmatn', fontSize: 11, height: 1.9, color: Color(AppColors.textDim)),
             ),
             const SizedBox(height: 14),
             YellowButton(
@@ -118,7 +122,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     if (ok != true || !mounted) return;
     final price = double.tryParse(ctrl.text.replaceAll(',', '.')) ?? 0;
     if (price <= 0) {
-      toast(context, 'قیمت معتبر نیست', error: true);
+      toast(context, s.fa ? 'قیمت معتبر نیست' : 'Invalid price', error: true);
       return;
     }
     try {
@@ -126,9 +130,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       final tx = isChange ? await inv.changePrice(g, price) : await inv.sell(g, price);
       if (!mounted) return;
       // تراکنش را از طریق جریان استاندارد بفرست
-      final sent = await _sendTx(context, tx, '${isChange ? 'تغییر قیمت' : 'فروش'} ${g.displayName}');
+      final sent = await _sendTx(context, tx, '${isChange ? s.changePrice : s.sellGift}: ${g.displayName}');
       if (sent && mounted) {
-        toast(context, 'درخواست ثبت شد — پس از تأیید شبکه، گیفت در مارکت لیست می‌شود');
+        toast(context, s.fa ? 'درخواست ثبت شد — پس از تأیید شبکه، گیفت در مارکت لیست می‌شود' : 'Request submitted — the gift will be listed once the network confirms');
         ref.read(inventoryProvider.notifier).refresh();
       }
     } catch (e) {
@@ -146,12 +150,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   Future<void> _cancelSale(GiftItem g) async {
+    final s = ref.read(settingsProvider).s;
     try {
       final tx = await ref.read(inventoryProvider.notifier).cancelSale(g);
       if (!mounted) return;
-      final sent = await _sendTx(context, tx, 'لغو فروش ${g.displayName}');
+      final sent = await _sendTx(context, tx, '${s.cancelSale}: ${g.displayName}');
       if (sent && mounted) {
-        toast(context, 'لغو فروش ثبت شد');
+        toast(context, s.fa ? 'لغو فروش ثبت شد' : 'Sale cancelled');
         ref.read(inventoryProvider.notifier).refresh();
       }
     } catch (e) {
@@ -162,22 +167,44 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(settingsProvider).s;
+
+    // انبار تلگرام
+    if (_tgMode) {
+      return Column(
+        children: [
+          _seg(s),
+          const Expanded(child: TgInventoryView()),
+        ],
+      );
+    }
+
     final wallet = ref.watch(walletProvider);
     final inv = ref.watch(inventoryProvider);
 
     if (!wallet.isConnected) {
-      return EmptyPanel(
-        icon: Icons.account_balance_wallet_rounded,
-        title: s.connectWallet,
-        subtitle: 'برای دیدن و فروش گیفت‌هایت، کیف پول TON را وصل کن — بدون ثبت‌نام',
-        action: YellowButton(
-          label: s.connectWallet,
-          onTap: () => showWalletSheet(context),
-        ),
+      return Column(
+        children: [
+          _seg(s),
+          Expanded(
+            child: EmptyPanel(
+              icon: Icons.account_balance_wallet_rounded,
+              title: s.connectWallet,
+              subtitle: s.fa ? 'برای دیدن و فروش گیفت‌هایت، کیف پول TON را وصل کن — بدون ثبت‌نام' : 'Connect your TON wallet to see and sell your gifts — no signup',
+              action: YellowButton(
+                label: s.connectWallet,
+                onTap: () => showWalletSheet(context),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
-    return RefreshIndicator(
+    return Column(
+      children: [
+        _seg(s),
+        Expanded(
+          child: RefreshIndicator(
       color: const Color(AppColors.yellow),
       backgroundColor: const Color(AppColors.card),
       onRefresh: () => ref.read(inventoryProvider.notifier).refresh(),
@@ -248,7 +275,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               child: EmptyPanel(
                 icon: Icons.inventory_2_rounded,
                 title: s.myGifts,
-                subtitle: 'گیفتی در این کیف پول پیدا نشد. با «افزودن گیفت تلگرام» لینک گیفتت را بده.',
+                subtitle: s.fa
+                    ? 'گیفتی در این کیف پول پیدا نشد. با «افزودن گیفت تلگرام» لینک گیفتت را بده.'
+                    : 'No gift found in this wallet. Use Add Telegram Gift and paste your gift link.',
               ),
             )
           else
@@ -291,6 +320,65 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               ),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 14)),
+        ],
+      ),
+        ),
+        ),
+      ],
+    );
+  }
+
+  /// سوییچ منبع انبار: تلگرام | تون
+  Widget _seg(S s) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _tgMode = true),
+              child: Container(
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _tgMode ? const Color(AppColors.yellow) : const Color(AppColors.card),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: _tgMode ? const Color(AppColors.yellow) : const Color(AppColors.stroke)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.telegram_rounded, size: 15, color: _tgMode ? const Color(0xFF111111) : const Color(AppColors.textDim)),
+                    const SizedBox(width: 6),
+                    Text(s.tgSource, style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, fontWeight: FontWeight.w800, color: _tgMode ? const Color(0xFF111111) : const Color(AppColors.text))),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _tgMode = false),
+              child: Container(
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: !_tgMode ? const Color(AppColors.yellow) : const Color(AppColors.card),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: !_tgMode ? const Color(AppColors.yellow) : const Color(AppColors.stroke)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.diamond_outlined, size: 15, color: !_tgMode ? const Color(0xFF111111) : const Color(AppColors.textDim)),
+                    const SizedBox(width: 6),
+                    Text(s.tonSource, style: TextStyle(fontFamily: 'Vazirmatn', fontSize: 12, fontWeight: FontWeight.w800, color: !_tgMode ? const Color(0xFF111111) : const Color(AppColors.text))),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
